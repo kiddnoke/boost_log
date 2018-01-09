@@ -1,88 +1,20 @@
-// log.cpp : ¶¨Òå¿ØÖÆÌ¨Ó¦ÓÃ³ÌĞòµÄÈë¿Úµã¡£
+ï»¿// log.cpp : å®šä¹‰æ§åˆ¶å°åº”ç”¨ç¨‹åºçš„å…¥å£ç‚¹ã€‚
 //
 #ifndef LOG_LOG_H
 #define LOG_LOG_H
-#include <string>
-#include <fstream>
-#include <sstream>
-#include <map>
-#include <stdio.h>
-#include <stdarg.h>
 
-#include <boost/log/support/date_time.hpp>
-#include <boost/date_time/posix_time/posix_time_types.hpp>
-#include <boost/log/trivial.hpp>
-#include <boost/log/expressions.hpp>
-#include <boost/log/sources/severity_logger.hpp>
-#include <boost/log/sources/record_ostream.hpp>
-#include <boost/log/utility/setup/file.hpp>
-#include <boost/log/utility/setup/common_attributes.hpp>
-#include <boost/log/sources/channel_feature.hpp>
-#include <boost/log/sources/channel_logger.hpp>
-#include <boost/smart_ptr/shared_ptr.hpp>
-#include <boost/log/common.hpp>
-#include <boost/log/attributes.hpp>
-#include <boost/log/sinks.hpp>
-#include <boost/log/sources/logger.hpp>
-#include <boost/log/sinks/text_file_backend.hpp>
-#include <boost/log/sources/severity_channel_logger.hpp>
-#include <boost/log/utility/setup/settings.hpp>
-#include <boost/log/utility/setup/from_stream.hpp>
-#include <boost/log/utility/setup/console.hpp>
-
-namespace logging = boost::log;
-namespace src = boost::log::sources;
-namespace expr = boost::log::expressions;
-namespace keywords = boost::log::keywords;
-namespace attrs = boost::log::attributes;
-namespace sinks = boost::log::sinks;
-
-enum severity_level
-{
-	sevlvl_trace,
-	sevlvl_debug,
-	sevlvl_info,
-	sevlvl_warn,
-	sevlvl_error,
-	sevlvl_fatal
-};
-
-class LogEngine
-{
-	typedef sinks::asynchronous_sink< sinks::text_file_backend > file_sink;
-	typedef boost::shared_ptr<file_sink> file_sink_ptr;
-	typedef src::severity_channel_logger<severity_level, std::string> log_channel;
-	typedef boost::shared_ptr<log_channel> log_channel_ptr;
-	std::string m_path;
-	unsigned m_txtlev;
-	unsigned m_flushLev;
-	boost::shared_ptr<sinks::synchronous_sink<sinks::text_ostream_backend> > m_consoleBackend;
-	std::map<std::string,log_channel_ptr> m_channels;
-public:
-	LogEngine() : m_path("logs/"), m_txtlev(sevlvl_info), m_flushLev(sevlvl_error) {}
-	static LogEngine& Instance()
-	{
-		static LogEngine s_ins;
-		return s_ins;
-	}
-
-	void Init(const std::string& ph);
-
-	void SetLogLevel(unsigned int lev) { m_txtlev = lev; }
-
-	// ¿ØÖÆÌ¨Lev±ØĞë´óÓÚÎÄ±¾Lev, ²»È»²»»áÊä³ö
-	void SetConsolePrintLevel(unsigned int consolePrintLevel) { m_consoleBackend->set_filter(expr::attr<severity_level>("Severity")>=consolePrintLevel); }
-
-	void SetFlushLevel(unsigned int flushLevel) { m_flushLev = flushLevel; }
-
-	void ForceLogOut() { logging::core::get()->flush(); }
-
-	const char* GetLogDirPath() const { return m_path.c_str(); }
-
-	void Write(const char* module, unsigned int logLevel, const char* msg);
-protected:
-	file_sink_ptr AddFileSink(const std::string& name);
-};
+#if defined(WIN)
+#pragma message("ç¼–è¯‘Windows")
+#ifdef LOG_EXPORTS
+#define  LOG_API __declspec(dllexport)
+#else
+#define  LOG_API __declspec(dllimport)
+#endif 
+#elif defined(__GNUC__)
+//gcc export or import
+#pragma message("ç¼–è¯‘ GNUC")
+#define LOG_API __attribute__((visibility("default")))
+#endif 
  
 
 namespace Log
@@ -97,41 +29,41 @@ namespace Log
 		eLogLevel_Fatal		= 5,
 	};
 
-	// ³õÊ¼»°LogÄ£¿é
-	// szLogDirPath:    logÊä³öÄ¿Â¼ (ÔÚ¿ÉÖ´ĞĞÎÄ¼şÄ¿Â¼´´½¨£¬Ö»ÄÜÒ»²ã) Èç£ºSysLog
-	extern "C"      bool	Log_Init(const char *szLogDirPath = "log");
+	// åˆå§‹è¯Logæ¨¡å—
+	// szLogDirPath:    logè¾“å‡ºç›®å½• (åœ¨å¯æ‰§è¡Œæ–‡ä»¶ç›®å½•åˆ›å»ºï¼Œåªèƒ½ä¸€å±‚) å¦‚ï¼šSysLog
+	extern "C" LOG_API bool Log_Init(const char *szLogDirPath = "log");
 
-	// ÉèÖÃĞ´LogµÈ¼¶
-	// loglevel: µ±µÈ¼¶¸ßÓÚ»òµÈÓÚ¸ÃÉèÖÃÊ±²ÅĞ´ÈëLogÎÄ¼ş£¬Ä¬ÈÏeLogLevel_Info
-	extern "C" void	Log_SetLogLevel(unsigned int loglevel);
+	// è®¾ç½®å†™Logç­‰çº§
+	// loglevel: å½“ç­‰çº§é«˜äºæˆ–ç­‰äºè¯¥è®¾ç½®æ—¶æ‰å†™å…¥Logæ–‡ä»¶ï¼Œé»˜è®¤eLogLevel_Info
+	extern "C" LOG_API void Log_SetLogLevel(unsigned int loglevel);
 
-	// ÉèÖÃLogÊä³öµ½¿ØÖÆÌ¨µÈ¼¶
-	// flushLevel: µ±µÈ¼¶¸ßÓÚ»òµÈÓÚ¸ÃÉèÖÃÊ±Êä³öµ½¿ØÖÆÌ¨£¬Ä¬ÈÏeLogLevel_Warning
-	extern "C" void	Log_SetConsolePrintLevel(unsigned int consolePrintLevel);
+	// è®¾ç½®Logè¾“å‡ºåˆ°æ§åˆ¶å°ç­‰çº§
+	// flushLevel: å½“ç­‰çº§é«˜äºæˆ–ç­‰äºè¯¥è®¾ç½®æ—¶è¾“å‡ºåˆ°æ§åˆ¶å°ï¼Œé»˜è®¤eLogLevel_Warning
+	extern "C" LOG_API void Log_SetConsolePrintLevel(unsigned int consolePrintLevel);
 
-	// ÉèÖÃLogÁ¢¼´FlushµÈ¼¶
-	// flushLevel: µ±µÈ¼¶¸ßÓÚ»òµÈÓÚ¸ÃÉèÖÃÊ±Á¢¼´FlushÎÄ¼ş£¬Ä¬ÈÏeLogLevel_Error
-	extern "C" void	Log_SetFlushLevel(unsigned int flushLevel);
+	// è®¾ç½®Logç«‹å³Flushç­‰çº§
+	// flushLevel: å½“ç­‰çº§é«˜äºæˆ–ç­‰äºè¯¥è®¾ç½®æ—¶ç«‹å³Flushæ–‡ä»¶ï¼Œé»˜è®¤eLogLevel_Error
+	extern "C" LOG_API void Log_SetFlushLevel(unsigned int flushLevel);
 
-	// Ğ´Log
-	// pszModule: Ä£¿éÃû£¬²»Í¬Ä£¿éĞ´²»Í¬logÎÄ¼ş
-	// logLevel:  ¸ÃÌõLogµÈ¼¶
-	// fmt: logÄÚÈİ¸ñÊ½£¬ºó¸ú²»¶¨³¤²ÎÊı
-	extern "C" bool	Log_Save(const char* pszModule, unsigned int logLevel, const char* fmt, ...);
+	// å†™Log
+	// pszModule: æ¨¡å—åï¼Œä¸åŒæ¨¡å—å†™ä¸åŒlogæ–‡ä»¶
+	// logLevel:  è¯¥æ¡Logç­‰çº§
+	// fmt: logå†…å®¹æ ¼å¼ï¼Œåè·Ÿä¸å®šé•¿å‚æ•°
+	extern "C" LOG_API bool Log_Save(const char *pszModule, unsigned int logLevel, const char *fmt, ...);
 
-	// Ğ´Log
-	// pszModule: Ä£¿éÃû£¬²»Í¬Ä£¿éĞ´²»Í¬logÎÄ¼ş
-	// fmt: logÄÚÈİ¸ñÊ½£¬ºó¸ú²»¶¨³¤²ÎÊı
-	// Ê¹ÓÃlogµÈ¼¶Îª eLogLevel_Info
-	extern "C" bool	LogSave(const char* pszModule, const char* fmt, ...);
+	// å†™Log
+	// pszModule: æ¨¡å—åï¼Œä¸åŒæ¨¡å—å†™ä¸åŒlogæ–‡ä»¶
+	// fmt: logå†…å®¹æ ¼å¼ï¼Œåè·Ÿä¸å®šé•¿å‚æ•°
+	// ä½¿ç”¨logç­‰çº§ä¸º eLogLevel_Info
+	extern "C" LOG_API bool LogSave(const char *pszModule, const char *fmt, ...);
 
-	// Ç¿ÖÆÊä³öÈÕÖ¾¶ÓÁĞÖĞµÄĞÅÏ¢
-	extern "C" void	Log_ForceLogOut();
+	// å¼ºåˆ¶è¾“å‡ºæ—¥å¿—é˜Ÿåˆ—ä¸­çš„ä¿¡æ¯
+	extern "C" LOG_API void Log_ForceLogOut();
 
-	// »ñÈ¡µ±Ç°ÈÕÖ¾Ä¿Â¼Â·¾¶, ĞèÒª"\"»ò"/"½áÎ²
-	extern "C" const char* Log_GetLogDirPath();
+	// è·å–å½“å‰æ—¥å¿—ç›®å½•è·¯å¾„, éœ€è¦"\"æˆ–"/"ç»“å°¾
+	extern "C" LOG_API const char *Log_GetLogDirPath();
 	//
-	extern "C" bool Log_Setup(const char* LogDirPath = "log" , unsigned int loglevel = eLogLevel_Info ,const unsigned int PrintLevel = eLogLevel_Error  , const unsigned int FlushLevel = eLogLevel_Error ) ;
+	extern "C" LOG_API bool Log_Setup(const char *LogDirPath = "log", unsigned int loglevel = eLogLevel_Info, const unsigned int PrintLevel = eLogLevel_Error, const unsigned int FlushLevel = eLogLevel_Error);
 }
 
 #endif // !LOG_LOG_H
